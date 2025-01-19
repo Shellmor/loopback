@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy import Row, RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from api import exceptions as exc
 
 ModelType = TypeVar("ModelType")
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -15,7 +16,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.model = model
 
     async def get(self, session: AsyncSession, obj_id: int) -> Optional[ModelType]:
-        """ Получить объект по ID. """
+        """ Получает объект по ID. """
 
         result = await session.get(self.model, obj_id)
         return result
@@ -23,14 +24,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def get_multi(
         self, session: AsyncSession, skip: int = 0, limit: int = 100
     ) -> Sequence[Row[Any] | RowMapping | Any]:
-        """ Получить список объектов с возможностью пропуска и лимита. """
+        """ Получает список объектов с возможностью пропуска и лимита. """
 
         query = select(self.model).offset(skip).limit(limit)
         result = await session.execute(query)
         return result.scalars().all()
 
     async def create(self, session: AsyncSession, obj_in: CreateSchemaType) -> ModelType:
-        """ Создать новый объект. """
+        """ Создает новый объект. """
 
         obj = self.model(**obj_in.model_dump())
         session.add(obj)
@@ -38,11 +39,12 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await session.refresh(obj)
         return obj
 
-    async def update(self, obj_id: int, session: AsyncSession, db_obj: ModelType, obj_in: UpdateSchemaType | dict) -> ModelType:
+    async def update(self, obj_id: int, session: AsyncSession, obj_in: UpdateSchemaType | dict) -> ModelType:
         """ Обновить существующий объект. """
 
-        if not await session.get(self.model, obj_id):
-            raise
+        db_obj = await session.get(self.model, obj_id)
+        if not db_obj:
+            raise exc.ObjectNotFound(obj_id)
         obj_data = obj_in.model_dump(exclude_unset=True) if isinstance(obj_in, BaseModel) else obj_in
         for field, value in obj_data.items():
             setattr(db_obj, field, value)
@@ -52,7 +54,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db_obj
 
     async def remove(self, session: AsyncSession, obj_id: int) -> Optional[ModelType]:
-        """ Удалить объект по ID. """
+        """ Удаляет объект по ID. """
 
         obj = await session.get(self.model, obj_id)
         if obj:
