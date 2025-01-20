@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - POSTGRES_HOST=postgres_dev
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=app_db
+    depends_on:
+      - postgres_dev
+      - postgres_test
+
+  postgres_dev:
+    image: postgres:17
+    container_name: postgres_dev_db
+    environment:
+      POSTGRES_DB: app_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+
+  postgres_test:
+    image: postgres:17
+    container_name: postgres_test_db
+    environment:
+      POSTGRES_DB: test_db
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+
+volumes:
+  postgres_dev_data:
+  postgres_test_data:
