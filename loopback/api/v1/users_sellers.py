@@ -34,7 +34,7 @@ async def create_users_sellers(
         context: str,
         obj_in: CreateUsersSellers
 ):
-    """ Создает продавца в магазине"""
+    """ Создает продавца в магазине """
 
     result = await users_sellers_crud.create_users_in_context(context, obj_in)
     return result
@@ -46,7 +46,7 @@ async def update_users_sellers(
         user_seller_id: int,
         obj_in: UpdateUsersSellers
 ):
-    """ Изменяет продавца в магазине по его ID"""
+    """ Изменяет продавца в магазине по его ID """
 
     result = await users_sellers_crud.update_users_in_context(context, user_seller_id, obj_in)
     return result
